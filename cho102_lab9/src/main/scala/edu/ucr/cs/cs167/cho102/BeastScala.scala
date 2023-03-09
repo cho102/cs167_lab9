@@ -43,9 +43,24 @@ object BeastScala {
 //          tweetsDF.show()
 //          tweetsDF.printSchema()
           tweetsDF.selectExpr("*", "ST_CreatePoint(Longitude, Latitude) AS geometry")
+          val tweetsRDD: SpatialRDD = tweetsDF.selectExpr("*", "ST_CreatePoint(Longitude, Latitude) AS geometry").toSpatialRDD
+          val countiesRDD: SpatialRDD = sparkContext.shapefile("tl_2018_us_county.zip")
+          val countyTweet: RDD[(IFeature, IFeature)] = countiesRDD.spatialJoin(tweetsRDD)
+          val tweetsByCounty: Map[String, Long] = countyTweet
+            .map({ case (county, tweet) => (county.getAs[String]("NAME"), 1) })
+            .countByKey()
+          println("County\tCount")
+          for ((county, count) <- tweetsByCounty)
+            println(s"$county\t$count")
         case "convert" =>
           val outputFile = args(2)
         // TODO add a CountyID column to the tweets, parse the text into keywords, and write back as a Parquet file
+          val tweetsRDD: SpatialRDD = sparkContext.readCSVPoint(inputFile,"Longitude","Latitude",'\t')
+          val countiesDF = sparkSession.read.format("shapefile").load("tl_2018_us_county.zip")
+          val countiesRDD: SpatialRDD = countiesDF.toSpatialRDD
+          val tweetCountyRDD: RDD[(IFeature, IFeature)] = tweetsRDD.spatialJoin(countiesRDD)
+          val tweetCounty: DataFrame = tweetCountyRDD.map({ case (tweet, county) => Feature.append(tweet, county.getAs[String]("GEOID"), "CountyID") })
+            .toDataFrame(sparkSession)
         case "count-by-keyword" =>
           val keyword: String = args(2)
         // TODO count the number of occurrences of each keyword per county and display on the screen
