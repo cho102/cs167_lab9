@@ -24,6 +24,7 @@
 
     ```text
     # Replace with your answer
+    In count-by-county, countiesRDD performed the spatial join with tweetsRDD as its parameter [val countyTweet: RDD[(IFeature, IFeature)] = countiesRDD.spatialJoin(tweetsRDD)] which is why the result was (county,tweet), whereas in the second operation, tweetsRDD perform the join operation with countiesRDD as the parameter[val tweetCountyRDD: RDD[(IFeature, IFeature)] = tweetsRDD.spatialJoin(countiesRDD)]. 
     ```
 
 * (Q3) What is the schema of the tweetCounty Dataframe?
