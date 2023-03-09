@@ -61,13 +61,48 @@ object BeastScala {
           val tweetCountyRDD: RDD[(IFeature, IFeature)] = tweetsRDD.spatialJoin(countiesRDD)
           val tweetCounty: DataFrame = tweetCountyRDD.map({ case (tweet, county) => Feature.append(tweet, county.getAs[String]("GEOID"), "CountyID") })
             .toDataFrame(sparkSession)
+//          tweetCounty.printSchema()
+          val convertedDF: DataFrame = tweetCounty.selectExpr("CountyID", "split(lower(text), ',') AS keywords", "Timestamp")
+//          convertedDF.printSchema()
+          convertedDF.write.mode(SaveMode.Overwrite).parquet(outputFile)
         case "count-by-keyword" =>
           val keyword: String = args(2)
         // TODO count the number of occurrences of each keyword per county and display on the screen
+          sparkSession.read.parquet(inputFile)
+            .createOrReplaceTempView("tweets")
+          println("CountyID\tCount")
+          sparkSession.sql(
+            s"""
+              SELECT CountyID, count(*) AS count
+              FROM tweets
+              WHERE array_contains(keywords, "$keyword")
+              GROUP BY CountyID
+            """).foreach(row => println(s"${row.get(0)}\t${row.get(1)}"))
         case "choropleth-map" =>
           val keyword: String = args(2)
           val outputFile: String = args(3)
         // TODO write a Shapefile that contains the count of the given keyword by county
+          sparkSession.read.parquet(inputFile)
+            .createOrReplaceTempView("tweets")
+          sparkSession.sql(
+            s"""
+            SELECT CountyID, count(*) AS count
+            FROM tweets
+            WHERE array_contains(keywords, "$keyword")
+            GROUP BY CountyID
+          """).createOrReplaceTempView("keyword_counts")
+          sparkContext.shapefile("tl_2018_us_county.zip")
+            .toDataFrame(sparkSession)
+            .createOrReplaceTempView("counties")
+          sparkSession.sql(
+            s"""
+              SELECT CountyID, NAME, g, count
+              FROM keyword_counts, counties
+              WHERE CountyID = GEOID
+            """)
+            .toSpatialRDD
+            .coalesce(1)
+            .saveAsShapefile(outputFile)
         case _ => validOperation = false
       }
       val t2 = System.nanoTime()
