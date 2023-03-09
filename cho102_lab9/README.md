@@ -30,19 +30,29 @@
 
     ```text
     # Replace here with the schema as printed by Spark
+    root
+      |-- g: geometry (nullable = true)
+      |-- Timestamp: string (nullable = true)
+      |-- Text: string (nullable = true)
+      |-- CountyID: string (nullable = true)
     ```
 
 * (Q4) What is the schema of the convertedDF Dataframe?
 
     ```text
     # Replace here with the schema as printed by Spark
+    root
+  |-- CountyID: string (nullable = true)
+  |-- keywords: array (nullable = true)
+  |    |-- element: string (containsNull = true)
+  |-- Timestamp: string (nullable = true)
     ```
 
 * (Q5) For the tweets_10k dataset, what is the size of the decompressed ZIP file as compared to the converted Parquet file?
 
     | Size of the original decompressed file | Size of the Parquet file |
     | - | - |
-    |  `Replace with the original size` | `Replace with the Parquet size` |
+    |  788.91kB | 349.659kB |
 
 * (Q6) (Bonus) Write down the SQL query(ies) that you can use to compute the ratios as described above. Briefly explain how your proposed solution works.
 
